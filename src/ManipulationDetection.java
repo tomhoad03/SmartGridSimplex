@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
@@ -80,16 +81,33 @@ public class ManipulationDetection {
             }
         }
 
-        // Calculate stats from testing
-        int normalCount = 0, abnormalCount = 0;
-        for (int i = 0; i < 100; i++) {
-            if (testingPricingCurves.get(i).isNormal()) {
-                normalCount++;
-            } else {
-                abnormalCount++;
+        // Write the results to a file
+        try {
+            FileWriter myWriter = new FileWriter("CentroidsTestingData.txt");
+            String line = "";
+
+            // Calculate stats from testing
+            int normalCount = 0, abnormalCount = 0;
+            for (int i = 0; i < 100; i++) {
+                if (testingPricingCurves.get(i).isNormal()) {
+                    normalCount++;
+                } else {
+                    abnormalCount++;
+                }
+
+                for (int j = 0; j < 24; j++) {
+                    line += testingPricingCurves.get(i).getPricingValues().get(j) + ",";
+                }
+                line += (testingPricingCurves.get(i).isNormal() ? 0 : 1) + "\n";
+
+                myWriter.write(line);
             }
+            System.out.println("Normal: " + normalCount + ", Abnormal: " + abnormalCount);
+
+            myWriter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        System.out.println("Normal: " + normalCount + ", Abnormal: " + abnormalCount);
     }
 
     private static void populateCumulativeValues(ArrayList<Double> cumulativeValues, PricingCurve trainingPricingCurve) {
