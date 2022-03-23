@@ -84,9 +84,8 @@ public class ManipulationDetection {
         // Write the results to a file
         try {
             FileWriter myWriter = new FileWriter("CentroidsTestingData.txt");
-            String line = "";
+            StringBuilder line = new StringBuilder();
 
-            // Calculate stats from testing
             int normalCount = 0, abnormalCount = 0;
             for (int i = 0; i < 100; i++) {
                 if (testingPricingCurves.get(i).isNormal()) {
@@ -96,15 +95,15 @@ public class ManipulationDetection {
                 }
 
                 for (int j = 0; j < 24; j++) {
-                    line += testingPricingCurves.get(i).getPricingValues().get(j) + ",";
+                    line.append(testingPricingCurves.get(i).getPricingValues().get(j)).append(",");
                 }
-                line += (testingPricingCurves.get(i).isNormal() ? 0 : 1) + "\n";
-
-                myWriter.write(line);
+                line.append(testingPricingCurves.get(i).isNormal() ? 0 : 1).append("\n");
             }
-            System.out.println("Normal: " + normalCount + ", Abnormal: " + abnormalCount);
 
+            myWriter.write(line.toString());
             myWriter.close();
+
+            System.out.println("Normal: " + normalCount + ", Abnormal: " + abnormalCount);
         } catch (Exception e) {
             e.printStackTrace();
         }
