@@ -1,8 +1,6 @@
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.util.*;
 
 public class ManipulationDetection {
     public static void main(String[] args) {
@@ -67,6 +65,7 @@ public class ManipulationDetection {
             abnormalCentroidValues.add(abnormalCumulativeValues.get(i) / 5000);
         }
 
+                /*
         // Classify the testing data
         for (PricingCurve testingPricingCurve : testingPricingCurves) {
             double normalDistanceSquared = 0, abnormalDistanceSquared = 0;
@@ -79,11 +78,43 @@ public class ManipulationDetection {
             if (normalDistanceSquared < abnormalDistanceSquared) {
                 testingPricingCurve.setNormal();
             }
+        }*/
+
+        // Calculate the k nearest neighbours
+        int k = 9;
+
+        for (PricingCurve testingPricingCurve : testingPricingCurves) {
+            ArrayList<DistancePair<Double, Integer>> distances = new ArrayList<>();
+            int count = 0;
+
+            for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
+                double distanceSquared = 0;
+
+                for (int i = 0; i < 24; i++) {
+                    distanceSquared += Math.pow((testingPricingCurve.getPricingValues().get(i) - trainingPricingCurve.getPricingValues().get(i)), 2);
+                }
+
+                distances.add(new DistancePair<>(distanceSquared, count));
+                count++;
+            }
+
+            distances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
+            int normalCount = 0;
+
+            for (int i = 0; i < k; i++) {
+                if (trainingPricingCurves.get(distances.get(i).getIndex()).isNormal()) {
+                    normalCount++;
+                }
+            }
+
+            if (normalCount > ((k - 1) / 2)) {
+                testingPricingCurve.setNormal();
+            }
         }
 
         // Write the results to a file
         try {
-            FileWriter myWriter = new FileWriter("CentroidsTestingData.txt");
+            FileWriter myWriter = new FileWriter("NeighboursTestingData.txt");
             StringBuilder line = new StringBuilder();
 
             int normalCount = 0, abnormalCount = 0;
