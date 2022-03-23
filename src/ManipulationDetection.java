@@ -81,10 +81,10 @@ public class ManipulationDetection {
         }*/
 
         // Calculate the k nearest neighbours
-        int k = 9;
+        int k = 20;
 
         for (PricingCurve testingPricingCurve : testingPricingCurves) {
-            ArrayList<DistancePair<Double, Integer>> distances = new ArrayList<>();
+            ArrayList<DistancePair> distances = new ArrayList<>();
             int count = 0;
 
             for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
@@ -94,7 +94,7 @@ public class ManipulationDetection {
                     distanceSquared += Math.pow((testingPricingCurve.getPricingValues().get(i) - trainingPricingCurve.getPricingValues().get(i)), 2);
                 }
 
-                distances.add(new DistancePair<>(distanceSquared, count));
+                distances.add(new DistancePair(distanceSquared, count));
                 count++;
             }
 
