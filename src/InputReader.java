@@ -9,7 +9,7 @@ public class InputReader {
             Scanner inputReader = new Scanner(input);
 
             FileWriter outputWriter = new FileWriter("Output.txt");
-            StringBuilder lineBuilder = new StringBuilder();
+            StringBuilder constraintsBuilderA = new StringBuilder(), constraintsBuilderB = new StringBuilder();
 
             // For each line, create a pricing curve object from the training data
             while (inputReader.hasNextLine()) {
@@ -22,11 +22,18 @@ public class InputReader {
                 int energyDemand = Integer.parseInt(line[4]);
 
                 for (int i = readyTime; i <= deadline; i++) {
-                    lineBuilder.append("0<=").append(userTaskIds).append("_time").append(i).append("<=").append(maxEnergy).append("\n");
+                    if (i > readyTime) {
+                        constraintsBuilderA.append("+");
+                    }
+                    constraintsBuilderA.append(userTaskIds).append("_time").append(i);
+                    if (i == deadline) {
+                        constraintsBuilderA.append("=").append(energyDemand).append(";\n");
+                    }
+                    constraintsBuilderB.append("0<=").append(userTaskIds).append("_time").append(i).append("<=").append(maxEnergy).append("\n");
                 }
             }
 
-            outputWriter.write(lineBuilder.toString());
+            outputWriter.write(constraintsBuilderA.append(constraintsBuilderB).toString());
             outputWriter.close();
             inputReader.close();
         } catch (Exception e) {
