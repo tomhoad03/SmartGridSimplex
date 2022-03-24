@@ -9,7 +9,7 @@ public class InputReader {
             Scanner inputReader = new Scanner(input);
 
             FileWriter outputWriter = new FileWriter("Output.txt");
-            StringBuilder constraintsBuilderA = new StringBuilder(), constraintsBuilderB = new StringBuilder();
+            StringBuilder minimiseBuilder = new StringBuilder(), constraintsBuilderA = new StringBuilder(), constraintsBuilderB = new StringBuilder();
             ArrayList<String> tasks = new ArrayList<>();
 
             // For each line, create a pricing curve object from the training data
@@ -35,10 +35,6 @@ public class InputReader {
                 }
             }
 
-            outputWriter.write(constraintsBuilderA.append(constraintsBuilderB).toString());
-            outputWriter.close();
-            inputReader.close();
-
             // Sort the tasks by time
             tasks.sort((a, b) -> {
                 ArrayList<String> splitIdsA = new ArrayList<>(List.of(a.split("_")));
@@ -46,10 +42,27 @@ public class InputReader {
                 return Integer.parseInt(splitIdsA.get(2).substring(4)) - Integer.parseInt(splitIdsB.get(2).substring(4));
             });
 
-            for (String userTaskId : tasks) {
-                System.out.println(userTaskId);
-            }
+            minimiseBuilder.append("c=");
+            int newCount = 0;
+            boolean first = true;
 
+            for (String userTaskId : tasks) {
+                if (!first) {
+                    minimiseBuilder.append("+");
+                } else {
+                    first = false;
+                }
+                if (newCount < Integer.parseInt(userTaskId.substring(userTaskId.indexOf("time") + 4))) {
+                    newCount++;
+                }
+                minimiseBuilder.append("Q*").append(userTaskId);
+            }
+            minimiseBuilder.append(";\n");
+
+            // Write the result of the constraints to a file
+            outputWriter.write(minimiseBuilder.append(constraintsBuilderA.append(constraintsBuilderB)).toString());
+            outputWriter.close();
+            inputReader.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
