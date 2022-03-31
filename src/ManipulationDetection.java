@@ -246,9 +246,9 @@ public class ManipulationDetection {
             String stringOutput = outputReader.nextLine();
 
             if (stringValues[stringValues.length - 1].equals("0")) {
-                programWriter = new FileWriter("normal_programs/program" + count + ".txt");
+                programWriter = new FileWriter("normal_programs/program" + count + ".lp");
             } else {
-                programWriter = new FileWriter("abnormal_programs/program" + count + ".txt");
+                programWriter = new FileWriter("abnormal_programs/program" + count + ".lp");
             }
 
             for (int i = 0; i < stringOutput.length(); i++) {
@@ -284,5 +284,11 @@ public class ManipulationDetection {
             outputReader.close();
             count++;
         }
+    }
+
+    // Solve the lp problems using simplex
+    private static void simplexSolver() throws Exception {
+        File outputFile = new File("data/COMP3217-example3.lp");
+        Scanner outputReader = new Scanner(outputFile);
     }
 }
