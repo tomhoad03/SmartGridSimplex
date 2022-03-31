@@ -238,13 +238,18 @@ public class ManipulationDetection {
         int count = 0;
 
         while (dataReader.hasNextLine()) {
-            FileWriter programWriter = new FileWriter("programs/program" + count + ".txt");
-
             File outputFile = new File("Output.txt");
             Scanner outputReader = new Scanner(outputFile);
+            FileWriter programWriter;
 
             String[] stringValues = dataReader.nextLine().split(",");
             String stringOutput = outputReader.nextLine();
+
+            if (stringValues[stringValues.length - 1].equals("0")) {
+                programWriter = new FileWriter("normal_programs/program" + count + ".txt");
+            } else {
+                programWriter = new FileWriter("abnormal_programs/program" + count + ".txt");
+            }
 
             for (int i = 0; i < stringOutput.length(); i++) {
                 if (stringOutput.charAt(i) == 'Q') {
