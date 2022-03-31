@@ -10,8 +10,9 @@ public class ManipulationDetection {
 
             // calculateCentroidValues(trainingPricingCurves, testingPricingCurves);
             calculateKNearestNeighbours(20, trainingPricingCurves, testingPricingCurves);
-            readInputData();
+            // readInputData(); only need to be run once to create base file
             printResults(testingPricingCurves);
+            createTestingLPs();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -35,8 +36,8 @@ public class ManipulationDetection {
 
             trainingPricingCurves.add(new PricingCurve(doubleValues, normal));
         }
-        trainingReader.close();
 
+        trainingReader.close();
         return trainingPricingCurves;
     }
 
@@ -55,8 +56,8 @@ public class ManipulationDetection {
 
             testingPricingCurves.add(new PricingCurve(doubleValues));
         }
-        testingReader.close();
 
+        testingReader.close();
         return testingPricingCurves;
     }
 
@@ -160,10 +161,13 @@ public class ManipulationDetection {
                 if (i > readyTime) {
                     constraintsBuilderA.append("+");
                 }
+
                 constraintsBuilderA.append(userTaskIds).append("_time").append(i);
+
                 if (i == deadline) {
                     constraintsBuilderA.append("=").append(energyDemand).append(";\n");
                 }
+
                 constraintsBuilderB.append("0<=").append(userTaskIds).append("_time").append(i).append("<=").append(maxEnergy).append("\n");
                 tasks.add(userTaskIds + "_time" + i);
             }
@@ -191,6 +195,7 @@ public class ManipulationDetection {
             }
             minimiseBuilder.append("Q*").append(userTaskId);
         }
+
         minimiseBuilder.append(";\n");
 
         // Write the result of the constraints to a file
@@ -201,7 +206,7 @@ public class ManipulationDetection {
 
     // Write the results to a file
     private static void printResults(ArrayList<PricingCurve> testingPricingCurves) throws Exception {
-        FileWriter myWriter = new FileWriter("NeighboursTestingData.txt");
+        FileWriter dataWriter = new FileWriter("NeighboursTestingData.txt");
         StringBuilder line = new StringBuilder();
 
         int normalCount = 0, abnormalCount = 0;
@@ -215,12 +220,60 @@ public class ManipulationDetection {
             for (int j = 0; j < 24; j++) {
                 line.append(testingPricingCurves.get(i).getPricingValues().get(j)).append(",");
             }
+
             line.append(testingPricingCurves.get(i).isNormal() ? 0 : 1).append("\n");
         }
 
-        myWriter.write(line.toString());
-        myWriter.close();
+        dataWriter.write(line.toString());
+        dataWriter.close();
 
         System.out.println("Normal: " + normalCount + ", Abnormal: " + abnormalCount);
+    }
+
+    // Create LP files for each of the abnormal testing pricing curves
+    private static void createTestingLPs() throws Exception {
+        File dataFile = new File("NeighboursTestingData.txt");
+        Scanner dataReader = new Scanner(dataFile);
+
+        int count = 0;
+
+        while (dataReader.hasNextLine()) {
+            FileWriter programWriter = new FileWriter("programs/program" + count + ".txt");
+
+            File outputFile = new File("Output.txt");
+            Scanner outputReader = new Scanner(outputFile);
+
+            String[] stringValues = dataReader.nextLine().split(",");
+            String stringOutput = outputReader.nextLine();
+
+            for (int i = 0; i < stringOutput.length(); i++) {
+                if (stringOutput.charAt(i) == 'Q') {
+                    String userTaskId;
+                    try {
+                        userTaskId = stringOutput.substring(i, stringOutput.indexOf("+", i));
+                    } catch (Exception e) {
+                        userTaskId = stringOutput.substring(i, stringOutput.length() - 1);
+                    }
+
+                    String time = userTaskId.substring(userTaskId.length() - 2);
+
+                    if (time.charAt(0) == 'e') {
+                        time = time.substring(1);
+                    }
+
+                    stringOutput = stringOutput.substring(0, i) + stringValues[Integer.parseInt(time)] + stringOutput.substring(i + 1);
+                }
+            }
+
+            programWriter.write(stringOutput + "\n");
+
+            while (outputReader.hasNextLine()) {
+                programWriter.write(outputReader.nextLine() + "\n");
+            }
+
+            programWriter.close();
+            outputReader.close();
+            count++;
+        }
     }
 }
