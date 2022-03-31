@@ -10,7 +10,7 @@ public class ManipulationDetection {
 
             // calculateCentroidValues(trainingPricingCurves, testingPricingCurves);
             calculateKNearestNeighbours(20, trainingPricingCurves, testingPricingCurves);
-            // readInputData(); only need to be run once to create base file
+            readInputData(); // only need to be run once to create base file
             printResults(testingPricingCurves);
             createTestingLPs();
         } catch (Exception e) {
@@ -168,7 +168,7 @@ public class ManipulationDetection {
                     constraintsBuilderA.append("=").append(energyDemand).append(";\n");
                 }
 
-                constraintsBuilderB.append("0<=").append(userTaskIds).append("_time").append(i).append("<=").append(maxEnergy).append("\n");
+                constraintsBuilderB.append("0<=").append(userTaskIds).append("_time").append(i).append("<=").append(maxEnergy).append(";\n");
                 tasks.add(userTaskIds + "_time" + i);
             }
         }
@@ -265,11 +265,15 @@ public class ManipulationDetection {
                 }
             }
 
+            programWriter.write("/* Objective function */\n");
+            programWriter.write("min: c;\n\n");
             programWriter.write(stringOutput + "\n");
 
             while (outputReader.hasNextLine()) {
                 programWriter.write(outputReader.nextLine() + "\n");
             }
+
+            programWriter.write("\n/* Variable bounds */");
 
             programWriter.close();
             outputReader.close();
