@@ -8,11 +8,13 @@ public class ManipulationDetection {
             ArrayList<PricingCurve> trainingPricingCurves = readTrainingData();
             ArrayList<PricingCurve> testingPricingCurves = readTestingData();
 
-            // calculateCentroidValues(trainingPricingCurves, testingPricingCurves);
+            // calculateCentroidValues(trainingPricingCurves, testingPricingCurves); // alternate training algorithm
             calculateKNearestNeighbours(20, trainingPricingCurves, testingPricingCurves);
-            readInputData(); // only need to be run once to create base file
+            // readInputData(); // only need to be run once to create base file
             printResults(testingPricingCurves);
             createTestingLPs();
+
+            simplexSolver();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -288,7 +290,50 @@ public class ManipulationDetection {
 
     // Solve the lp problems using simplex
     private static void simplexSolver() throws Exception {
-        File outputFile = new File("data/COMP3217-example3.lp");
-        Scanner outputReader = new Scanner(outputFile);
+        File lpFile = new File("data/COMP3217-example3.lp");
+        Scanner lpReader = new Scanner(lpFile);
+
+        // Read the minimise function
+        lpReader.nextLine(); lpReader.nextLine(); lpReader.nextLine();
+        String minimiseFunctionLine = lpReader.nextLine();
+        String[] minimiseVariables = minimiseFunctionLine.substring(2, minimiseFunctionLine.length() - 1).split("\\+");
+
+        ArrayList<Double> minimiseFunction = new ArrayList<>();
+        ArrayList<String> variableNames = new ArrayList<>();
+
+        minimiseFunction.add(1.0);
+        variableNames.add("c");
+
+        for (String minimiseVariable : minimiseVariables) {
+            String minimiseConstant = minimiseVariable.split("\\*")[0];
+            minimiseFunction.add(Double.valueOf(minimiseConstant));
+
+            String minimiseValue = minimiseVariable.split("\\*")[1];
+            variableNames.add(minimiseValue);
+        }
+        variableNames.add("total");
+
+        // Read the constraints
+        ArrayList<ArrayList<Double>> constraints = new ArrayList<>();
+
+        while (lpReader.hasNextLine()) {
+            String line = lpReader.nextLine();
+
+            if (line.contains("=") && !line.contains("<=")) {
+                String[] constraintVariables = line.split("=")[0].split("\\+");
+                ArrayList<Double> constraint = new ArrayList<>(Collections.nCopies(variableNames.size() + 1, 0.0));
+
+                String constraintValue = line.split("=")[1];
+                constraintValue = constraintValue.substring(0, constraintValue.length() - 1);
+
+                for (String constraintVariable : constraintVariables) {
+                    constraint.set(variableNames.indexOf(constraintVariable), 1.0);
+                }
+                constraint.set(variableNames.size(), Double.valueOf(constraintValue));
+                constraints.add(constraint);
+            }
+        }
+
+        SimplexTableau simplexTableau = new SimplexTableau(variableNames, minimiseFunction, constraints);
     }
 }
