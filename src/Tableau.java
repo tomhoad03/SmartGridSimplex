@@ -78,9 +78,6 @@ public class Tableau {
             int pivotCol = 0;
 
             for (int i = 0; i < numberOfBoth; i++) {
-                if (i == numberOfBoth - 1) {
-                    System.out.println("TEST");
-                }
                 if (tableau[numberOfConstraints][i] < tableau[numberOfConstraints][pivotCol]) {
                     pivotCol = i;
                 }
@@ -111,9 +108,10 @@ public class Tableau {
                         }
                     }
                 }
-                System.out.println(pivotCol + ", " + tableau[numberOfConstraints][pivotCol] + ", " + pivotRow + ", " + tableau[pivotRow][pivotCol]);
+
             }
         }
+        System.out.println("SOLVED!" + "\n" + tableau[numberOfConstraints][numberOfBoth]);
     }
 
     public Constraint getMinimiseFunction() {

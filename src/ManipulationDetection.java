@@ -300,7 +300,6 @@ public class ManipulationDetection {
             if (testingData.endsWith("1")) {
                 Tableau tableau = new Tableau(testingData);
                 tableau.solve();
-                break;
             }
         }
     }
