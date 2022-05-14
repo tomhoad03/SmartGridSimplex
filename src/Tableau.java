@@ -98,13 +98,20 @@ public class Tableau {
                     if (i != pivotRow) {
                         double operationValue = tableau[i][pivotCol];
                         for (int j = 0; j < numberOfBoth + 1; j++) {
+                            if (i == numberOfConstraints && j == numberOfBoth) {
+                                System.out.println(tableau[numberOfConstraints][numberOfBoth]);
+                            }
                             tableau[i][j] = tableau[i][j] - (operationValue * tableau[pivotRow][j]);
                         }
                     }
                 }
-
             }
         }
         System.out.println(tableau[numberOfConstraints][numberOfBoth]);
+
+        /*
+        NEED TWO-STAGE SIMPLEX!!!
+        https://www.youtube.com/watch?v=SLwAUYvSfZI   -    3:33
+         */
     }
 }
