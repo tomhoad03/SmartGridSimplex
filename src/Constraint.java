@@ -44,12 +44,4 @@ public class Constraint {
     public double getValue() {
         return value;
     }
-
-    public void setCoefficients(ArrayList<Double> coefficients) {
-        this.coefficients = coefficients;
-    }
-
-    public void setVariables(ArrayList<String> variables) {
-        this.variables = variables;
-    }
 }

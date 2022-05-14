@@ -3,14 +3,13 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Tableau {
-    private Constraint minimiseFunction;
-    private ArrayList<Constraint> constraints = new ArrayList<>();
+    private final Constraint minimiseFunction;
+    private final ArrayList<Constraint> constraints = new ArrayList<>();
 
     public Tableau(String testingData) throws Exception {
         Scanner outputReader = new Scanner(new File("output.txt"));
 
-        String minimiseString = outputReader.nextLine();
-        String[] splitString = minimiseString.split(";")[0].split("=")[1].split("\\+");
+        String[] splitString = outputReader.nextLine().split(";")[0].split("=")[1].split("\\+");
         String[] splitData = testingData.split(",");
 
         ArrayList<Double> coefficients = new ArrayList<>();
@@ -45,8 +44,7 @@ public class Tableau {
         for (Constraint constraint : constraints) {
             for (String variable : minimiseFunction.getVariables()) {
                 if (constraint.getVariables().contains(variable)) {
-                    double value = constraint.getCoefficients().get(constraint.getVariables().indexOf(variable));
-                    tableau[y][x] = value;
+                    tableau[y][x] = constraint.getCoefficients().get(constraint.getVariables().indexOf(variable));;
                 } else {
                     tableau[y][x] = 0.0;
                 }
@@ -76,7 +74,6 @@ public class Tableau {
 
         while (!isSolved) {
             int pivotCol = 0;
-
             for (int i = 0; i < numberOfBoth; i++) {
                 if (tableau[numberOfConstraints][i] < tableau[numberOfConstraints][pivotCol]) {
                     pivotCol = i;
@@ -86,15 +83,13 @@ public class Tableau {
                 isSolved = true;
             } else {
                 int pivotRow = 0;
-
-                for (int i = 0; i < numberOfConstraints - 1; i++) {
+                for (int i = 0; i < numberOfConstraints; i++) {
                     if ((tableau[i][numberOfBoth] / tableau[i][pivotCol]) < (tableau[pivotRow][numberOfBoth] / tableau[pivotRow][pivotCol])) {
                         pivotRow = i;
                     }
                 }
 
                 double pivotValue = tableau[pivotRow][pivotCol];
-
                 for (int i = 0; i < numberOfBoth + 1; i++) {
                     tableau[pivotRow][i] = tableau[pivotRow][i] / pivotValue;
                 }
@@ -102,7 +97,6 @@ public class Tableau {
                 for (int i = 0; i < numberOfConstraints + 1; i++) {
                     if (i != pivotRow) {
                         double operationValue = tableau[i][pivotCol];
-
                         for (int j = 0; j < numberOfBoth + 1; j++) {
                             tableau[i][j] = tableau[i][j] - (operationValue * tableau[pivotRow][j]);
                         }
@@ -111,14 +105,6 @@ public class Tableau {
 
             }
         }
-        System.out.println("SOLVED!" + "\n" + tableau[numberOfConstraints][numberOfBoth]);
-    }
-
-    public Constraint getMinimiseFunction() {
-        return minimiseFunction;
-    }
-
-    public ArrayList<Constraint> getConstraints() {
-        return constraints;
+        System.out.println(tableau[numberOfConstraints][numberOfBoth]);
     }
 }
