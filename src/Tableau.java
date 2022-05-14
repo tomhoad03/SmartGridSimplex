@@ -33,7 +33,7 @@ public class Tableau {
     }
 
     public void solve() {
-        Double[][] tableau = new Double[51][450];
+        Double[][] tableau = new Double[51][449];
 
         int y = 0, x = 0;
 
@@ -47,28 +47,70 @@ public class Tableau {
                 }
                 x++;
             }
-            for (int i = 398; i < 449; i++) {
+            for (int i = 398; i < 448; i++) {
                 if (i - 398 == y) {
                     tableau[y][i] = 1.0;
                 } else {
                     tableau[y][i] = 0.0;
                 }
             }
-            tableau[y][449] = constraint.getValue();
+            tableau[y][448] = constraint.getValue();
             y++;
             x = 0;
         }
 
         for (int i = 0; i < 398; i++) {
-            tableau[50][i] = minimiseFunction.getCoefficients().get(i);
+            tableau[50][i] = 0 - minimiseFunction.getCoefficients().get(i);
         }
-        for (int i = 398; i < 448; i++) {
+        for (int i = 398; i < 447; i++) {
             tableau[50][i] = 0.0;
         }
-        tableau[50][448] = 1.0;
-        tableau[50][449] = minimiseFunction.getValue();
+        tableau[50][448] = minimiseFunction.getValue();
 
-        System.out.println("Solve");
+        boolean isSolved = false;
+
+        while (!isSolved) {
+            int pivotCol = 0;
+
+            for (int i = 0; i < 397; i++) {
+                if (tableau[50][i] < tableau[50][pivotCol]) {
+                    pivotCol = i;
+                }
+            }
+
+            if (pivotCol == 307) {
+                System.out.println("Test");
+            }
+
+            if (tableau[50][pivotCol] >= 0) {
+                isSolved = true;
+            } else {
+                int pivotRow = 0;
+
+                for (int i = 0; i < 49; i++) {
+                    if ((tableau[i][398] / tableau[i][pivotCol]) < (tableau[pivotRow][398] / tableau[pivotRow][pivotCol])) {
+                        pivotRow = i;
+                    }
+                }
+
+                double pivotValue = tableau[pivotRow][pivotCol];
+
+                for (int i = 0; i < 398; i++) {
+                    tableau[pivotRow][i] = tableau[pivotRow][i] / pivotValue;
+                }
+
+                for (int i = 0; i < 51; i++) {
+                    if (i != pivotRow) {
+                        double operationValue = tableau[i][pivotCol];
+
+                        for (int j = 0; j < 398; j++) {
+                            tableau[i][j] = tableau[i][j] - (operationValue * tableau[pivotRow][j]);
+                        }
+                    }
+                }
+                System.out.println(pivotCol + ", " + tableau[50][pivotCol] + ", " + pivotRow + ", " + tableau[pivotRow][pivotCol]);
+            }
+        }
     }
 
     public Constraint getMinimiseFunction() {
