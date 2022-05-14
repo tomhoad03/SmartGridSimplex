@@ -21,6 +21,12 @@ public class Constraint {
         this.value = Double.parseDouble(constraintString.split(";")[0].split("=")[1]);
     }
 
+    public Constraint(String constraintString, boolean ignored) {
+        this.coefficients.add(1.0);
+        this.variables.add(constraintString.split("<=")[1]);
+        this.value = 1.0;
+    }
+
     public Constraint(ArrayList<Double> coefficients, ArrayList<String> variables) {
         this.coefficients = coefficients;
         this.variables = variables;

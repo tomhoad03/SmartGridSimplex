@@ -28,14 +28,19 @@ public class Tableau {
 
             if (!constraintString.contains("<")) {
                 this.constraints.add(new Constraint(constraintString));
+            } else {
+                this.constraints.add(new Constraint(constraintString, false));
             }
         }
     }
 
     public void solve() {
-        Double[][] tableau = new Double[51][449];
-
         int y = 0, x = 0;
+        int numberOfConstraints = constraints.size(), // 50
+            numberOfVariables = minimiseFunction.getVariables().size(), // 398
+            numberOfBoth = numberOfConstraints + numberOfVariables; // 448
+
+        Double[][] tableau = new Double[numberOfConstraints + 1][numberOfBoth + 1];
 
         for (Constraint constraint : constraints) {
             for (String variable : minimiseFunction.getVariables()) {
@@ -47,68 +52,66 @@ public class Tableau {
                 }
                 x++;
             }
-            for (int i = 398; i < 448; i++) {
-                if (i - 398 == y) {
+            for (int i = numberOfVariables; i < numberOfBoth; i++) {
+                if (i - numberOfVariables == y) {
                     tableau[y][i] = 1.0;
                 } else {
                     tableau[y][i] = 0.0;
                 }
             }
-            tableau[y][448] = constraint.getValue();
+            tableau[y][numberOfBoth] = constraint.getValue();
             y++;
             x = 0;
         }
 
-        for (int i = 0; i < 398; i++) {
-            tableau[50][i] = 0 - minimiseFunction.getCoefficients().get(i);
+        for (int i = 0; i < numberOfVariables; i++) {
+            tableau[numberOfConstraints][i] = 0 - minimiseFunction.getCoefficients().get(i);
         }
-        for (int i = 398; i < 447; i++) {
-            tableau[50][i] = 0.0;
+        for (int i = numberOfVariables; i < numberOfBoth; i++) {
+            tableau[numberOfConstraints][i] = 0.0;
         }
-        tableau[50][448] = minimiseFunction.getValue();
+        tableau[numberOfConstraints][numberOfBoth] = minimiseFunction.getValue();
 
         boolean isSolved = false;
 
         while (!isSolved) {
             int pivotCol = 0;
 
-            for (int i = 0; i < 397; i++) {
-                if (tableau[50][i] < tableau[50][pivotCol]) {
+            for (int i = 0; i < numberOfBoth; i++) {
+                if (i == numberOfBoth - 1) {
+                    System.out.println("TEST");
+                }
+                if (tableau[numberOfConstraints][i] < tableau[numberOfConstraints][pivotCol]) {
                     pivotCol = i;
                 }
             }
-
-            if (pivotCol == 307) {
-                System.out.println("Test");
-            }
-
-            if (tableau[50][pivotCol] >= 0) {
+            if (tableau[numberOfConstraints][pivotCol] >= 0) {
                 isSolved = true;
             } else {
                 int pivotRow = 0;
 
-                for (int i = 0; i < 49; i++) {
-                    if ((tableau[i][398] / tableau[i][pivotCol]) < (tableau[pivotRow][398] / tableau[pivotRow][pivotCol])) {
+                for (int i = 0; i < numberOfConstraints - 1; i++) {
+                    if ((tableau[i][numberOfBoth] / tableau[i][pivotCol]) < (tableau[pivotRow][numberOfBoth] / tableau[pivotRow][pivotCol])) {
                         pivotRow = i;
                     }
                 }
 
                 double pivotValue = tableau[pivotRow][pivotCol];
 
-                for (int i = 0; i < 398; i++) {
+                for (int i = 0; i < numberOfBoth + 1; i++) {
                     tableau[pivotRow][i] = tableau[pivotRow][i] / pivotValue;
                 }
 
-                for (int i = 0; i < 51; i++) {
+                for (int i = 0; i < numberOfConstraints + 1; i++) {
                     if (i != pivotRow) {
                         double operationValue = tableau[i][pivotCol];
 
-                        for (int j = 0; j < 398; j++) {
+                        for (int j = 0; j < numberOfBoth + 1; j++) {
                             tableau[i][j] = tableau[i][j] - (operationValue * tableau[pivotRow][j]);
                         }
                     }
                 }
-                System.out.println(pivotCol + ", " + tableau[50][pivotCol] + ", " + pivotRow + ", " + tableau[pivotRow][pivotCol]);
+                System.out.println(pivotCol + ", " + tableau[numberOfConstraints][pivotCol] + ", " + pivotRow + ", " + tableau[pivotRow][pivotCol]);
             }
         }
     }
