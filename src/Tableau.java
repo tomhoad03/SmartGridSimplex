@@ -35,16 +35,16 @@ public class Tableau {
 
     public void solve() {
         int y = 0, x = 0;
-        int numberOfConstraints = constraints.size(), // 50
+        int numberOfConstraints = constraints.size(), // 448
             numberOfVariables = minimiseFunction.getVariables().size(), // 398
-            numberOfBoth = numberOfConstraints + numberOfVariables; // 448
+            numberOfBoth = numberOfConstraints + numberOfVariables; // 846
 
         Double[][] tableau = new Double[numberOfConstraints + 1][numberOfBoth + 1];
 
         for (Constraint constraint : constraints) {
             for (String variable : minimiseFunction.getVariables()) {
                 if (constraint.getVariables().contains(variable)) {
-                    tableau[y][x] = constraint.getCoefficients().get(constraint.getVariables().indexOf(variable));;
+                    tableau[y][x] = constraint.getCoefficients().get(constraint.getVariables().indexOf(variable));
                 } else {
                     tableau[y][x] = 0.0;
                 }
