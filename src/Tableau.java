@@ -5,6 +5,7 @@ import java.util.Scanner;
 public class Tableau {
     private final Constraint minimiseFunction;
     private final ArrayList<Constraint> constraints = new ArrayList<>();
+    private int equalCount = 0;
 
     public Tableau(String testingData) throws Exception {
         Scanner outputReader = new Scanner(new File("output.txt"));
@@ -26,7 +27,9 @@ public class Tableau {
             String constraintString = outputReader.nextLine();
 
             if (!constraintString.contains("<")) {
-                this.constraints.add(new Constraint(constraintString));
+                this.constraints.add(new Constraint(constraintString, 1.0));
+                this.constraints.add(new Constraint(constraintString, -1.0));
+                equalCount++;
             } else {
                 this.constraints.add(new Constraint(constraintString, false));
             }
@@ -35,9 +38,9 @@ public class Tableau {
 
     public void solve() {
         int y = 0, x = 0;
-        int numberOfConstraints = constraints.size(), // 448
-            numberOfVariables = minimiseFunction.getVariables().size(), // 398
-            numberOfBoth = numberOfConstraints + numberOfVariables; // 846
+        int numberOfVariables = minimiseFunction.getVariables().size(), // 398
+            numberOfConstraints = constraints.size(), // 498
+            numberOfBoth = numberOfConstraints + numberOfVariables; // 896
 
         // Create an array representing the tableau
         Double[][] tableau = new Double[numberOfConstraints + 2][numberOfBoth + 1];
@@ -46,17 +49,28 @@ public class Tableau {
         for (Constraint constraint : constraints) {
             for (String variable : minimiseFunction.getVariables()) {
                 if (constraint.getVariables().contains(variable)) {
-                    tableau[y][x] = constraint.getCoefficients().get(constraint.getVariables().indexOf(variable));
+                    tableau[y][x] = 1.0;
                 } else {
                     tableau[y][x] = 0.0;
                 }
                 x++;
             }
             for (int i = numberOfVariables; i < numberOfBoth; i++) {
-                if (i - numberOfVariables == y) {
-                    tableau[y][i] = 1.0;
-                } else {
-                    tableau[y][i] = 0.0;
+                if (constraint.isEquals()) {
+                    if (i - numberOfVariables == y) {
+                        tableau[y][i] = 1.0;
+                    } else {
+                        tableau[y][i] = 0.0;
+                    }
+                }
+                else {
+                    if (i - numberOfVariables == y) {
+                        tableau[y][i] = -1.0;
+                    } else if (i - numberOfVariables - equalCount == y) {
+                        tableau[y][i] = 1.0;
+                    } else {
+                        tableau[y][i] = 0.0;
+                    }
                 }
             }
             tableau[y][numberOfBoth] = constraint.getValue();
@@ -124,6 +138,7 @@ public class Tableau {
                 for (int i = 0; i < numberOfConstraints + 2; i++) {
                     if (i != pivotRow) {
                         double operationValue = tableau[i][pivotCol];
+
                         for (int j = 0; j < numberOfBoth + 1; j++) {
                             tableau[i][j] = tableau[i][j] - (operationValue * tableau[pivotRow][j]);
                         }
@@ -171,7 +186,8 @@ public class Tableau {
 
         /*
         MAY NEED TWO-STAGE SIMPLEX!!!
-        https://www.youtube.com/watch?v=SLwAUYvSfZI   -    3:33
+        https://youtu.be/SLwAUYvSfZI?t=213
+        https://youtu.be/FetyKd8G3Bw?t=394
          */
     }
 }

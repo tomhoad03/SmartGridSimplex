@@ -303,6 +303,7 @@ public class ManipulationDetection {
                 Tableau tableau = new Tableau(testingData);
                 System.out.print("LP" + count + "   |   ");
                 tableau.solve();
+                break;
             }
         }
     }
