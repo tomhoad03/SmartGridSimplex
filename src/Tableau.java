@@ -39,8 +39,10 @@ public class Tableau {
             numberOfVariables = minimiseFunction.getVariables().size(), // 398
             numberOfBoth = numberOfConstraints + numberOfVariables; // 846
 
-        Double[][] tableau = new Double[numberOfConstraints + 1][numberOfBoth + 1];
+        // Create an array representing the tableau
+        Double[][] tableau = new Double[numberOfConstraints + 2][numberOfBoth + 1];
 
+        // Add the constraints to the tableau
         for (Constraint constraint : constraints) {
             for (String variable : minimiseFunction.getVariables()) {
                 if (constraint.getVariables().contains(variable)) {
@@ -62,6 +64,7 @@ public class Tableau {
             x = 0;
         }
 
+        // Add the minimisation function to the tableau
         for (int i = 0; i < numberOfVariables; i++) {
             tableau[numberOfConstraints][i] = 0 - minimiseFunction.getCoefficients().get(i);
         }
@@ -70,11 +73,71 @@ public class Tableau {
         }
         tableau[numberOfConstraints][numberOfBoth] = minimiseFunction.getValue();
 
-        boolean isSolved = false;
+        // Create the function to minimise artificial variables
+        Double[] rowSum = new Double[numberOfBoth + 1];
 
+        for (int i = 0; i < numberOfConstraints - numberOfVariables; i++) {
+            Double[] row = tableau[i];
+
+            for (int j = 0; j < numberOfVariables; j++) {
+                try {
+                    rowSum[j] -= row[j];
+                } catch (Exception ignored) {
+                    rowSum[j] = 0.0 - row[j];
+                }
+            }
+            for (int j = numberOfVariables; j < numberOfBoth; j++) {
+                rowSum[j] = 0.0;
+            }
+            try {
+                rowSum[numberOfBoth] -= row[numberOfBoth];
+            } catch (Exception ignored) {
+                rowSum[numberOfBoth] = 0.0 - row[numberOfBoth];
+            }
+        }
+        tableau[numberOfConstraints + 1] = rowSum;
+
+        // Perform the first phase of simplex
+        boolean isSolved = false;
         while (!isSolved) {
             int pivotCol = 0;
             for (int i = 0; i < numberOfBoth; i++) {
+                if (tableau[numberOfConstraints + 1][i] < tableau[numberOfConstraints][pivotCol]) {
+                    pivotCol = i;
+                }
+            }
+            if (tableau[numberOfConstraints + 1][pivotCol] >= 0) {
+                isSolved = true;
+            } else {
+                int pivotRow = 0;
+                for (int i = 0; i < numberOfConstraints + 1; i++) {
+                    if ((tableau[i][numberOfBoth] / tableau[i][pivotCol]) < (tableau[pivotRow][numberOfBoth] / tableau[pivotRow][pivotCol]) && (tableau[i][numberOfBoth] / tableau[i][pivotCol] > 0)) {
+                        pivotRow = i;
+                    }
+                }
+
+                double pivotValue = tableau[pivotRow][pivotCol];
+                for (int i = 0; i < numberOfBoth + 1; i++) {
+                    tableau[pivotRow][i] = tableau[pivotRow][i] / pivotValue;
+                }
+
+                for (int i = 0; i < numberOfConstraints + 2; i++) {
+                    if (i != pivotRow) {
+                        double operationValue = tableau[i][pivotCol];
+                        for (int j = 0; j < numberOfBoth + 1; j++) {
+                            tableau[i][j] = tableau[i][j] - (operationValue * tableau[pivotRow][j]);
+                        }
+                    }
+                }
+            }
+        }
+        System.out.print("First Stage: " + tableau[numberOfConstraints][numberOfBoth]);
+
+        // Perform the second phase of simplex
+        isSolved = false;
+        while (!isSolved) {
+            int pivotCol = 0;
+            for (int i = 0; i < numberOfConstraints; i++) {
                 if (tableau[numberOfConstraints][i] < tableau[numberOfConstraints][pivotCol]) {
                     pivotCol = i;
                 }
@@ -84,7 +147,7 @@ public class Tableau {
             } else {
                 int pivotRow = 0;
                 for (int i = 0; i < numberOfConstraints; i++) {
-                    if ((tableau[i][numberOfBoth] / tableau[i][pivotCol]) < (tableau[pivotRow][numberOfBoth] / tableau[pivotRow][pivotCol])) {
+                    if ((tableau[i][numberOfBoth] / tableau[i][pivotCol]) < (tableau[pivotRow][numberOfBoth] / tableau[pivotRow][pivotCol])  && (tableau[i][numberOfBoth] / tableau[i][pivotCol] > 0)) {
                         pivotRow = i;
                     }
                 }
@@ -98,19 +161,16 @@ public class Tableau {
                     if (i != pivotRow) {
                         double operationValue = tableau[i][pivotCol];
                         for (int j = 0; j < numberOfBoth + 1; j++) {
-                            if (i == numberOfConstraints && j == numberOfBoth) {
-                                System.out.println(tableau[numberOfConstraints][numberOfBoth]);
-                            }
                             tableau[i][j] = tableau[i][j] - (operationValue * tableau[pivotRow][j]);
                         }
                     }
                 }
             }
         }
-        System.out.println(tableau[numberOfConstraints][numberOfBoth]);
+        System.out.println("   |   Second Stage: " + tableau[numberOfConstraints][numberOfBoth]);
 
         /*
-        NEED TWO-STAGE SIMPLEX!!!
+        MAY NEED TWO-STAGE SIMPLEX!!!
         https://www.youtube.com/watch?v=SLwAUYvSfZI   -    3:33
          */
     }

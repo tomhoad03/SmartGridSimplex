@@ -293,14 +293,16 @@ public class ManipulationDetection {
     // Solve the lp problems using simplex
     private static void simplexSolver() throws Exception {
         Scanner testingReader = new Scanner(new File("NeighboursTestingData.txt"));
+        int count = 0;
 
         while (testingReader.hasNextLine()) {
             String testingData = testingReader.nextLine();
+            count++;
 
             if (testingData.endsWith("1")) {
                 Tableau tableau = new Tableau(testingData);
+                System.out.print("LP" + count + "   |   ");
                 tableau.solve();
-                break;
             }
         }
     }
