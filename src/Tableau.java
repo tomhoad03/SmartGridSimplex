@@ -57,7 +57,7 @@ public class Tableau {
             }
             for (int i = numberOfVariables; i < numberOfBoth; i++) {
                 if (constraint.isEquals()) {
-                    if (i - numberOfVariables == y) {
+                    if (i - numberOfVariables + equalCount == y) {
                         tableau[y][i] = 1.0;
                     } else {
                         tableau[y][i] = 0.0;
@@ -66,7 +66,7 @@ public class Tableau {
                 else {
                     if (i - numberOfVariables == y) {
                         tableau[y][i] = -1.0;
-                    } else if (i - numberOfVariables - equalCount == y) {
+                    } else if (i - numberOfBoth - equalCount == y) {
                         tableau[y][i] = 1.0;
                     } else {
                         tableau[y][i] = 0.0;
@@ -80,7 +80,7 @@ public class Tableau {
 
         // Add the minimisation function to the tableau
         for (int i = 0; i < numberOfVariables; i++) {
-            tableau[numberOfConstraints][i] = 0 - minimiseFunction.getCoefficients().get(i);
+            tableau[numberOfConstraints][i] = minimiseFunction.getCoefficients().get(i);
         }
         for (int i = numberOfVariables; i < numberOfBoth; i++) {
             tableau[numberOfConstraints][i] = 0.0;
@@ -93,14 +93,14 @@ public class Tableau {
         for (int i = 0; i < numberOfConstraints - numberOfVariables; i++) {
             Double[] row = tableau[i];
 
-            for (int j = 0; j < numberOfVariables; j++) {
+            for (int j = 0; j < numberOfBoth - (numberOfConstraints - numberOfVariables); j++) {
                 try {
                     rowSum[j] -= row[j];
                 } catch (Exception ignored) {
                     rowSum[j] = 0.0 - row[j];
                 }
             }
-            for (int j = numberOfVariables; j < numberOfBoth; j++) {
+            for (int j = numberOfBoth - (numberOfConstraints - numberOfVariables); j < numberOfBoth; j++) {
                 rowSum[j] = 0.0;
             }
             try {
@@ -111,16 +111,19 @@ public class Tableau {
         }
         tableau[numberOfConstraints + 1] = rowSum;
 
+        System.out.print("Zero Stage: " + tableau[numberOfConstraints][numberOfBoth] + "   |   ");
+
         // Perform the first phase of simplex
         boolean isSolved = false;
         while (!isSolved) {
             int pivotCol = 0;
             for (int i = 0; i < numberOfBoth; i++) {
-                if (tableau[numberOfConstraints + 1][i] < tableau[numberOfConstraints][pivotCol]) {
+                if (tableau[numberOfConstraints + 1][i] < tableau[numberOfConstraints + 1][pivotCol]) {
                     pivotCol = i;
                 }
             }
-            if (tableau[numberOfConstraints + 1][pivotCol] >= 0) {
+
+            if (tableau[numberOfConstraints + 1][pivotCol] == 0) {
                 isSolved = true;
             } else {
                 int pivotRow = 0;
@@ -157,7 +160,8 @@ public class Tableau {
                     pivotCol = i;
                 }
             }
-            if (tableau[numberOfConstraints][pivotCol] >= 0) {
+
+            if (tableau[numberOfConstraints][pivotCol] == 0) {
                 isSolved = true;
             } else {
                 int pivotRow = 0;

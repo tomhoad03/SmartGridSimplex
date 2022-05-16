@@ -297,7 +297,6 @@ public class ManipulationDetection {
 
         while (testingReader.hasNextLine()) {
             String testingData = testingReader.nextLine();
-            count++;
 
             if (testingData.endsWith("1")) {
                 Tableau tableau = new Tableau(testingData);
@@ -305,6 +304,7 @@ public class ManipulationDetection {
                 tableau.solve();
                 break;
             }
+            count++;
         }
     }
 }
