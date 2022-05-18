@@ -72,31 +72,49 @@ public class ManipulationDetection {
             trainingAccuracyCurves.add(i, new PricingCurve(trainingPricingCurves.get(i).getPricingValues()));
         }
 
-        for (PricingCurve trainingAccuracyCurve : trainingAccuracyCurves) {
-            ArrayList<DistancePair> distances = new ArrayList<>();
-            int count = 0;
-
-            for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
-                double distanceSquared = 0.0;
-
-                for (int i = 0; i < 24; i++) {
-                    distanceSquared += Math.pow((trainingAccuracyCurve.getPricingValues().get(i) - trainingPricingCurve.getPricingValues().get(i)), 2);
-                }
-
-                distances.add(new DistancePair(distanceSquared, count));
-                count++;
+        for (int i = 0; i < 10; i++) {
+            ArrayList<PricingCurve> trainingPricingCurvesBag = new ArrayList<>();
+            for (int j = i; j < trainingPricingCurves.size(); j += 10) {
+                trainingPricingCurvesBag.add(new PricingCurve(trainingPricingCurves.get(j).getPricingValues()));
             }
 
-            distances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
+            for (PricingCurve trainingAccuracyCurve : trainingAccuracyCurves) {
+                ArrayList<DistancePair> distances = new ArrayList<>();
+                int count = i;
+
+                for (PricingCurve trainingPricingCurve : trainingPricingCurvesBag) {
+                    double distanceSquared = 0.0;
+
+                    for (int m = 0; m < 24; m++) {
+                        distanceSquared += Math.pow((trainingAccuracyCurve.getPricingValues().get(m) - trainingPricingCurve.getPricingValues().get(m)), 2);
+                    }
+
+                    distances.add(new DistancePair(distanceSquared, count));
+                    count += 10;
+                }
+
+                distances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
+                int normalCount = 0;
+
+                for (int n = 0; n < k; n++) {
+                    if (trainingPricingCurves.get(distances.get(i).getIndex()).isNormal()) {
+                        normalCount++;
+                    }
+                }
+
+                trainingAccuracyCurve.addNormal(normalCount > ((k - 1) / 2));
+            }
+        }
+
+        for (PricingCurve trainingAccuracyCurve : trainingAccuracyCurves) {
             int normalCount = 0;
 
-            for (int i = 0; i < k; i++) {
-                if (trainingPricingCurves.get(distances.get(i).getIndex()).isNormal()) {
+            for (boolean normal : trainingAccuracyCurve.getNormalBag()) {
+                if (normal) {
                     normalCount++;
                 }
             }
-
-            trainingAccuracyCurve.setNormal(normalCount > ((k - 1) / 2));
+            trainingAccuracyCurve.setNormal(normalCount >= 5);
         }
 
         int correctCount = 0;
@@ -111,31 +129,49 @@ public class ManipulationDetection {
 
     // Calculate the k nearest neighbours
     private static void calculateKNearestNeighbours(int k, ArrayList<PricingCurve> trainingPricingCurves, ArrayList<PricingCurve> testingPricingCurves) {
-        for (PricingCurve testingPricingCurve : testingPricingCurves) {
-            ArrayList<DistancePair> distances = new ArrayList<>();
-            int count = 0;
-
-            for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
-                double distanceSquared = 0;
-
-                for (int i = 0; i < 24; i++) {
-                    distanceSquared += Math.pow((testingPricingCurve.getPricingValues().get(i) - trainingPricingCurve.getPricingValues().get(i)), 2);
-                }
-
-                distances.add(new DistancePair(distanceSquared, count));
-                count++;
+        for (int i = 0; i < 10; i++) {
+            ArrayList<PricingCurve> trainingPricingCurvesBag = new ArrayList<>();
+            for (int j = i; j < trainingPricingCurves.size(); j += 10) {
+                trainingPricingCurvesBag.add(new PricingCurve(trainingPricingCurves.get(j).getPricingValues()));
             }
 
-            distances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
+            for (PricingCurve testingPricingCurve : testingPricingCurves) {
+                ArrayList<DistancePair> distances = new ArrayList<>();
+                int count = i;
+
+                for (PricingCurve trainingPricingCurve : trainingPricingCurvesBag) {
+                    double distanceSquared = 0.0;
+
+                    for (int m = 0; m < 24; m++) {
+                        distanceSquared += Math.pow((testingPricingCurve.getPricingValues().get(m) - trainingPricingCurve.getPricingValues().get(m)), 2);
+                    }
+
+                    distances.add(new DistancePair(distanceSquared, count));
+                    count += 10;
+                }
+
+                distances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
+                int normalCount = 0;
+
+                for (int n = 0; n < k; n++) {
+                    if (trainingPricingCurves.get(distances.get(i).getIndex()).isNormal()) {
+                        normalCount++;
+                    }
+                }
+
+                testingPricingCurve.addNormal(normalCount > ((k - 1) / 2));
+            }
+        }
+
+        for (PricingCurve testingPricingCurve : testingPricingCurves) {
             int normalCount = 0;
 
-            for (int i = 0; i < k; i++) {
-                if (trainingPricingCurves.get(distances.get(i).getIndex()).isNormal()) {
+            for (boolean normal : testingPricingCurve.getNormalBag()) {
+                if (normal) {
                     normalCount++;
                 }
             }
-
-            testingPricingCurve.setNormal(normalCount > ((k - 1) / 2));
+            testingPricingCurve.setNormal(normalCount >= 5);
         }
     }
 
