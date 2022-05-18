@@ -8,14 +8,14 @@ public class ManipulationDetection {
             ArrayList<PricingCurve> trainingPricingCurves = readTrainingData();
             ArrayList<PricingCurve> testingPricingCurves = readTestingData();
 
-            /*
-            calculateCentroidValues(trainingPricingCurves, testingPricingCurves); // alternate training algorithm
-            readInputData(); // only need to be run once to create base file
-            createTestingLPs();
-             */
-
+            // Classification
+            readInputData();
+            checkTrainingAccuracy(20, trainingPricingCurves);
             calculateKNearestNeighbours(20, trainingPricingCurves, testingPricingCurves);
             printResults(testingPricingCurves);
+
+            // Linear Programming
+            createTestingLPs();
             simplexSolver();
         } catch (Exception e) {
             e.printStackTrace();
@@ -65,49 +65,48 @@ public class ManipulationDetection {
         return testingPricingCurves;
     }
 
-    // Calculate the centroid values of the normal and abnormal curves
-    private static void calculateCentroidValues(ArrayList<PricingCurve> trainingPricingCurves, ArrayList<PricingCurve> testingPricingCurves) {
-        ArrayList<Double> normalCumulativeValues = new ArrayList<>(24), abnormalCumulativeValues = new ArrayList<>(24);
-        ArrayList<Double> normalCentroidValues = new ArrayList<>(24), abnormalCentroidValues = new ArrayList<>(24);
+    // Check the accuracy of the classification
+    private static void checkTrainingAccuracy(int k, ArrayList<PricingCurve> trainingPricingCurves) {
+        ArrayList<PricingCurve> trainingAccuracyCurves = new ArrayList<>();
+        for (int i = 0; i < trainingPricingCurves.size(); i++) {
+            trainingAccuracyCurves.add(i, new PricingCurve(trainingPricingCurves.get(i).getPricingValues()));
+        }
 
-        for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
-            if ((normalCumulativeValues.size() == 0 && trainingPricingCurve.isNormal()) || (abnormalCumulativeValues.size() == 0 && trainingPricingCurve.isNormal())) {
+        for (PricingCurve trainingAccuracyCurve : trainingAccuracyCurves) {
+            ArrayList<DistancePair> distances = new ArrayList<>();
+            int count = 0;
+
+            for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
+                double distanceSquared = 0.0;
+
                 for (int i = 0; i < 24; i++) {
-                    if (trainingPricingCurve.isNormal()) {
-                        normalCumulativeValues.add(trainingPricingCurve.getPricingValues().get(i));
-                    } else {
-                        abnormalCumulativeValues.add(trainingPricingCurve.getPricingValues().get(i));
-                    }
+                    distanceSquared += Math.pow((trainingAccuracyCurve.getPricingValues().get(i) - trainingPricingCurve.getPricingValues().get(i)), 2);
                 }
-            } else {
-                for (int i = 0; i < 24; i++) {
-                    if (trainingPricingCurve.isNormal()) {
-                        normalCumulativeValues.set(i, normalCumulativeValues.get(i) + trainingPricingCurve.getPricingValues().get(i));
-                    } else {
-                        abnormalCumulativeValues.set(i, abnormalCumulativeValues.get(i) + trainingPricingCurve.getPricingValues().get(i));
-                    }
+
+                distances.add(new DistancePair(distanceSquared, count));
+                count++;
+            }
+
+            distances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
+            int normalCount = 0;
+
+            for (int i = 0; i < k; i++) {
+                if (trainingPricingCurves.get(distances.get(i).getIndex()).isNormal()) {
+                    normalCount++;
                 }
             }
+
+            trainingAccuracyCurve.setNormal(normalCount > ((k - 1) / 2));
         }
 
-        for (int i = 0; i < 24; i++) {
-            normalCentroidValues.add(normalCumulativeValues.get(i) / 5000);
-            abnormalCentroidValues.add(abnormalCumulativeValues.get(i) / 5000);
-        }
+        int correctCount = 0;
 
-        // Classify the testing data
-        for (PricingCurve testingPricingCurve : testingPricingCurves) {
-            double normalDistanceSquared = 0, abnormalDistanceSquared = 0;
-
-            for (int i = 0; i < 24; i++) {
-                normalDistanceSquared += Math.pow((testingPricingCurve.getPricingValues().get(i) - normalCentroidValues.get(i)), 2);
-                abnormalDistanceSquared += Math.pow((testingPricingCurve.getPricingValues().get(i) - abnormalCentroidValues.get(i)), 2);
-            }
-
-            if (normalDistanceSquared < abnormalDistanceSquared) {
-                testingPricingCurve.setNormal();
+        for (int i = 0; i < trainingAccuracyCurves.size(); i++) {
+            if ((trainingPricingCurves.get(i).isNormal() && trainingAccuracyCurves.get(i).isNormal()) || (!trainingPricingCurves.get(i).isNormal() && !trainingAccuracyCurves.get(i).isNormal())) {
+                correctCount++;
             }
         }
+        System.out.println("Accuracy = " + correctCount + " / " + trainingAccuracyCurves.size() + " = " + (double) correctCount / (double) trainingAccuracyCurves.size());
     }
 
     // Calculate the k nearest neighbours
@@ -136,9 +135,7 @@ public class ManipulationDetection {
                 }
             }
 
-            if (normalCount > ((k - 1) / 2)) {
-                testingPricingCurve.setNormal();
-            }
+            testingPricingCurve.setNormal(normalCount > ((k - 1) / 2));
         }
     }
 
@@ -214,18 +211,18 @@ public class ManipulationDetection {
         StringBuilder line = new StringBuilder();
 
         int normalCount = 0, abnormalCount = 0;
-        for (int i = 0; i < 100; i++) {
-            if (testingPricingCurves.get(i).isNormal()) {
+        for (PricingCurve testingPricingCurve : testingPricingCurves) {
+            if (testingPricingCurve.isNormal()) {
                 normalCount++;
             } else {
                 abnormalCount++;
             }
 
             for (int j = 0; j < 24; j++) {
-                line.append(testingPricingCurves.get(i).getPricingValues().get(j)).append(",");
+                line.append(testingPricingCurve.getPricingValues().get(j)).append(",");
             }
 
-            line.append(testingPricingCurves.get(i).isNormal() ? 0 : 1).append("\n");
+            line.append(testingPricingCurve.isNormal() ? 0 : 1).append("\n");
         }
 
         dataWriter.write(line.toString());
@@ -302,7 +299,6 @@ public class ManipulationDetection {
                 Tableau tableau = new Tableau(testingData);
                 System.out.print("LP" + count + "   |   ");
                 tableau.solve();
-                break;
             }
             count++;
         }

@@ -21,7 +21,7 @@ public class PricingCurve {
         return isNormal;
     }
 
-    public void setNormal() {
-        isNormal = true;
+    public void setNormal(boolean normal) {
+        isNormal = normal;
     }
 }

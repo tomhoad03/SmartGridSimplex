@@ -111,8 +111,6 @@ public class Tableau {
         }
         tableau[numberOfConstraints + 1] = rowSum;
 
-        System.out.print("Zero Stage: " + tableau[numberOfConstraints][numberOfBoth] + "   |   ");
-
         // Perform the first phase of simplex
         boolean isSolved = false;
         while (!isSolved) {
@@ -149,7 +147,7 @@ public class Tableau {
                 }
             }
         }
-        System.out.print("First Stage: " + tableau[numberOfConstraints][numberOfBoth]);
+        System.out.print("First Stage: " + -tableau[numberOfConstraints][numberOfBoth]);
 
         // Perform the second phase of simplex
         isSolved = false;
@@ -186,7 +184,7 @@ public class Tableau {
                 }
             }
         }
-        System.out.println("   |   Second Stage: " + tableau[numberOfConstraints][numberOfBoth]);
+        System.out.println("   |   Second Stage: " + -tableau[numberOfConstraints][numberOfBoth]);
 
         /*
         MAY NEED TWO-STAGE SIMPLEX!!!
