@@ -1,3 +1,9 @@
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.category.DefaultCategoryDataset;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.util.*;
@@ -17,6 +23,9 @@ public class ManipulationDetection {
             // Linear Programming
             createTestingLPs();
             simplexSolver();
+
+            // Display charts
+            displayCharts();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -336,6 +345,42 @@ public class ManipulationDetection {
                 System.out.print("LP" + count + "   |   ");
                 tableau.solve();
             }
+            count++;
+        }
+    }
+
+    // Create bar charts for all the programs using JFreeChart
+    private static void displayCharts() throws Exception {
+        Scanner testingReader = new Scanner(new File("NeighboursTestingData.txt"));
+        int count = 0;
+
+        while (testingReader.hasNextLine()) {
+            String testingData = testingReader.nextLine();
+            final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+            for (int i = 0; i < 24; i++) {
+                double value = Double.parseDouble(testingData.split(",")[i]);
+                dataset.addValue(value, "", "" + i);
+            }
+
+            File chart;
+            JFreeChart barChart;
+            if (testingData.endsWith("0")) {
+                chart = new File("normal_charts/program" + count + ".jpeg");
+                barChart = ChartFactory.createBarChart(
+                        "Normal Program " + count,
+                        "Value", "Value",
+                        dataset, PlotOrientation.VERTICAL,
+                        true, true, false);
+            } else {
+                chart = new File("abnormal_charts/program" + count + ".jpeg");
+                barChart = ChartFactory.createBarChart(
+                        "Abnormal Program " + count,
+                        "Value", "Value",
+                        dataset, PlotOrientation.VERTICAL,
+                        true, true, false);
+            }
+            ChartUtilities.saveChartAsJPEG(chart, barChart, 1280, 720);
             count++;
         }
     }
