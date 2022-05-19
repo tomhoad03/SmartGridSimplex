@@ -185,11 +185,5 @@ public class Tableau {
             }
         }
         System.out.println("   |   Second Stage: " + -tableau[numberOfConstraints][numberOfBoth]);
-
-        /*
-        MAY NEED TWO-STAGE SIMPLEX!!!
-        https://youtu.be/SLwAUYvSfZI?t=213
-        https://youtu.be/FetyKd8G3Bw?t=394
-         */
     }
 }
