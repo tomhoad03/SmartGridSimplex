@@ -17,8 +17,9 @@ public class ManipulationDetection {
             readInputData();
 
             // Classification of testing data
-            classifyTrainingData(20, 10, trainingPricingCurves);
-            classifyTestingData(20, 10, trainingPricingCurves, testingPricingCurves);
+            ArrayList<Double> meanCurve = trainClassification(trainingPricingCurves);
+            classifyTrainingData(50, 20, meanCurve, trainingPricingCurves);
+            classifyTestingData(50, 20, meanCurve, trainingPricingCurves, testingPricingCurves);
             printResults(testingPricingCurves);
 
             // Linear programming using simplex
@@ -44,7 +45,7 @@ public class ManipulationDetection {
 
             ArrayList<Double> doubleValues = new ArrayList<>();
             stringValues.stream().mapToDouble(Double::parseDouble).forEach(doubleValues::add);
-            trainingPricingCurves.add(new PricingCurve(doubleValues, normal));
+            trainingPricingCurves.add(new PricingCurve(doubleValues, normal, 1.0));
         }
 
         trainingReader.close();
@@ -62,7 +63,7 @@ public class ManipulationDetection {
             ArrayList<String> stringValues = new ArrayList<>(Arrays.asList(testingReader.nextLine().split(",")));
             ArrayList<Double> doubleValues = new ArrayList<>();
             stringValues.stream().mapToDouble(Double::parseDouble).forEach(doubleValues::add);
-            testingPricingCurves.add(new PricingCurve(doubleValues));
+            testingPricingCurves.add(new PricingCurve(doubleValues, 1.0));
         }
 
         testingReader.close();
@@ -132,11 +133,63 @@ public class ManipulationDetection {
         inputReader.close();
     }
 
+    // Train the classification algorithm
+    private static ArrayList<Double> trainClassification(ArrayList<PricingCurve> trainingPricingCurves) {
+        ArrayList<Double> meanCurve = new ArrayList<>(24);
+        ArrayList<Double> meanNormalCurve = new ArrayList<>(24);
+        ArrayList<Double> meanAbnormalCurve = new ArrayList<>(24);
+
+        // Finds the mean normal and abnormal curves
+        for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
+            if (trainingPricingCurve.isNormal()) {
+                for (int i = 0; i < 24; i++) {
+                    try {
+                        meanNormalCurve.set(i, meanNormalCurve.get(i) + trainingPricingCurve.getPricingValues().get(i));
+                    } catch (Exception e) {
+                        meanNormalCurve.add(trainingPricingCurve.getPricingValues().get(i));
+                    }
+                }
+            } else {
+                for (int i = 0; i < 24; i++) {
+                    try {
+                        meanAbnormalCurve.set(i, meanAbnormalCurve.get(i) + trainingPricingCurve.getPricingValues().get(i));
+                    } catch (Exception e) {
+                        meanAbnormalCurve.add(trainingPricingCurve.getPricingValues().get(i));
+                    }
+                }
+            }
+        }
+
+        // Finds the mean curve
+        for (int i = 0; i < 24; i++) {
+            meanCurve.add((meanNormalCurve.get(i) + meanAbnormalCurve.get(i)) / 10000);
+        }
+
+        // Calculates the weighting of each training curve given its distance to the mean
+        for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
+            double distanceSquared = 0.0;
+            if (trainingPricingCurve.isNormal()) {
+                for (int j = 0; j < 24; j++) {
+                    distanceSquared += Math.pow((meanNormalCurve.get(j) - meanCurve.get(j)) - (trainingPricingCurve.getPricingValues().get(j) - meanCurve.get(j)), 2);
+                }
+            } else {
+                for (int j = 0; j < 24; j++) {
+                    distanceSquared += Math.pow((meanAbnormalCurve.get(j) - meanCurve.get(j)) - (trainingPricingCurve.getPricingValues().get(j) - meanCurve.get(j)), 2);
+                }
+            }
+            trainingPricingCurve.setWeighting(Math.sqrt(distanceSquared));
+        }
+        return meanCurve;
+    }
+
     // Classify the training data to test the accuracy of the classification
-    private static void classifyTrainingData(int k, int b, ArrayList<PricingCurve> trainingPricingCurves) {
+    private static void classifyTrainingData(int k, int b, ArrayList<Double> meanCurve, ArrayList<PricingCurve> trainingPricingCurves) {
         ArrayList<PricingCurve> trainingAccuracyCurves = new ArrayList<>();
-        for (int i = 0; i < trainingPricingCurves.size(); i++) {
-            trainingAccuracyCurves.add(i, new PricingCurve(trainingPricingCurves.get(i).getPricingValues()));
+        for (int i = 0; i < trainingPricingCurves.size() / 2; i++) {
+            trainingAccuracyCurves.add(i, new PricingCurve(trainingPricingCurves.get(i).getPricingValues(), 0, trainingPricingCurves.get(i).getWeighting()));
+        }
+        for (int i = trainingPricingCurves.size() / 2; i < trainingPricingCurves.size(); i++) {
+            trainingAccuracyCurves.add(i, new PricingCurve(trainingPricingCurves.get(i).getPricingValues(), 1, trainingPricingCurves.get(i).getWeighting()));
         }
 
         // Use bagging to find a more accurate result
@@ -144,36 +197,35 @@ public class ManipulationDetection {
             // Create a bag of the training data
             ArrayList<PricingCurve> trainingPricingCurvesBag = new ArrayList<>();
             for (int j = i; j < trainingPricingCurves.size(); j += b) {
-                trainingPricingCurvesBag.add(new PricingCurve(trainingPricingCurves.get(j).getPricingValues()));
+                trainingPricingCurvesBag.add(new PricingCurve(trainingPricingCurves.get(j).getPricingValues(), trainingPricingCurves.get(j).getWeighting()));
             }
 
             // Calculate if the curve is normal or abnormal for this bag
             for (PricingCurve trainingAccuracyCurve : trainingAccuracyCurves) {
-                ArrayList<DistancePair> distances = new ArrayList<>();
+                ArrayList<DistancePair> weightedDistances = new ArrayList<>();
                 int count = i;
 
                 // Calculate the distances to every pricing curve in the bag
                 for (PricingCurve trainingPricingCurve : trainingPricingCurvesBag) {
                     double distanceSquared = 0.0;
                     for (int m = 0; m < 24; m++) {
-                        distanceSquared += Math.pow((trainingAccuracyCurve.getPricingValues().get(m) - trainingPricingCurve.getPricingValues().get(m)), 2);
+                        distanceSquared += Math.pow(((trainingAccuracyCurve.getPricingValues().get(m) - meanCurve.get(m)) - (trainingPricingCurve.getPricingValues().get(m) - meanCurve.get(m))), 2);
                     }
-                    distances.add(new DistancePair(distanceSquared, count));
+                    weightedDistances.add(new DistancePair(trainingPricingCurve.getWeighting() * distanceSquared, count));
                     count += b;
                 }
 
                 // Find if closest pricing curves are mostly normal or abnormal
-                distances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
+                weightedDistances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
                 int normalCount = 0;
                 for (int n = 0; n < k; n++) {
-                    if (trainingPricingCurves.get(distances.get(i).getIndex()).isNormal()) {
+                    if (trainingPricingCurves.get(weightedDistances.get(i).getIndex()).isNormal()) {
                         normalCount++;
                     }
                 }
                 trainingAccuracyCurve.addNormal(normalCount > ((k - 1) / 2));
             }
         }
-
         // Determine if the aggregate bag results say if the curve is normal or abnormal
         for (PricingCurve trainingAccuracyCurve : trainingAccuracyCurves) {
             int normalCount = 0;
@@ -182,13 +234,13 @@ public class ManipulationDetection {
                     normalCount++;
                 }
             }
-            trainingAccuracyCurve.setNormal(normalCount >= 5);
+            trainingAccuracyCurve.setNormal(normalCount > ((b - 1) / 2));
         }
 
         // Determine the accuracy of the classification
         int correctCount = 0;
         for (int i = 0; i < trainingAccuracyCurves.size(); i++) {
-            if ((trainingPricingCurves.get(i).isNormal() && trainingAccuracyCurves.get(i).isNormal()) || (!trainingPricingCurves.get(i).isNormal() && !trainingAccuracyCurves.get(i).isNormal())) {
+            if (trainingPricingCurves.get(i).isNormal() == trainingAccuracyCurves.get(i).isNormal()) {
                 correctCount++;
             }
         }
@@ -196,34 +248,34 @@ public class ManipulationDetection {
     }
 
     // Classify the testing data using k nearest neighbours and bagging
-    private static void classifyTestingData(int k, int b, ArrayList<PricingCurve> trainingPricingCurves, ArrayList<PricingCurve> testingPricingCurves) {
+    private static void classifyTestingData(int k, int b, ArrayList<Double> meanCurve, ArrayList<PricingCurve> trainingPricingCurves, ArrayList<PricingCurve> testingPricingCurves) {
         for (int i = 0; i < b; i++) {
             // Create a bag of the training data
             ArrayList<PricingCurve> trainingPricingCurvesBag = new ArrayList<>();
             for (int j = i; j < trainingPricingCurves.size(); j += b) {
-                trainingPricingCurvesBag.add(new PricingCurve(trainingPricingCurves.get(j).getPricingValues()));
+                trainingPricingCurvesBag.add(new PricingCurve(trainingPricingCurves.get(j).getPricingValues(), trainingPricingCurves.get(j).getWeighting()));
             }
 
             // Calculate if the curve is normal or abnormal for this bag
             for (PricingCurve testingPricingCurve : testingPricingCurves) {
-                ArrayList<DistancePair> distances = new ArrayList<>();
+                ArrayList<DistancePair> weightedDistances = new ArrayList<>();
                 int count = i;
 
                 // Calculate the distances to every pricing curve in the bag
                 for (PricingCurve trainingPricingCurve : trainingPricingCurvesBag) {
                     double distanceSquared = 0.0;
                     for (int m = 0; m < 24; m++) {
-                        distanceSquared += Math.pow((testingPricingCurve.getPricingValues().get(m) - trainingPricingCurve.getPricingValues().get(m)), 2);
+                        distanceSquared += Math.pow(((testingPricingCurve.getPricingValues().get(m) - meanCurve.get(m)) - (trainingPricingCurve.getPricingValues().get(m) - meanCurve.get(m))), 2);
                     }
-                    distances.add(new DistancePair(distanceSquared, count));
+                    weightedDistances.add(new DistancePair(trainingPricingCurve.getWeighting() * distanceSquared, count));
                     count += b;
                 }
 
                 // Find if closest pricing curves are mostly normal or abnormal
-                distances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
+                weightedDistances.sort(Comparator.comparingDouble(DistancePair::getDistanceSquared));
                 int normalCount = 0;
                 for (int n = 0; n < k; n++) {
-                    if (trainingPricingCurves.get(distances.get(i).getIndex()).isNormal()) {
+                    if (trainingPricingCurves.get(weightedDistances.get(i).getIndex()).isNormal()) {
                         normalCount++;
                     }
                 }
@@ -239,7 +291,7 @@ public class ManipulationDetection {
                     normalCount++;
                 }
             }
-            testingPricingCurve.setNormal(normalCount >= 5);
+            testingPricingCurve.setNormal(normalCount > ((b - 1) / 2));
         }
     }
 
