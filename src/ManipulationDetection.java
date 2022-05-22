@@ -18,7 +18,7 @@ public class ManipulationDetection {
 
             // Classification of testing data
             ClassificationValues classificationValues = trainClassification(trainingPricingCurves);
-            // classifyTrainingData(50, 20, classificationValues, trainingPricingCurves);
+            classifyTrainingData(50, 20, classificationValues, trainingPricingCurves);
             classifyTestingData(50, 20, classificationValues, trainingPricingCurves, testingPricingCurves);
             printResults(testingPricingCurves);
 
@@ -408,16 +408,16 @@ public class ManipulationDetection {
                 chart = new File("normal_charts/program" + count + ".jpeg");
                 barChart = ChartFactory.createBarChart(
                         "Normal Program " + count,
-                        "Value", "Value",
+                        "Time of Day", "Total Energy Usage",
                         dataset, PlotOrientation.VERTICAL,
-                        true, true, false);
+                        true, false, false);
             } else {
                 chart = new File("abnormal_charts/program" + count + ".jpeg");
                 barChart = ChartFactory.createBarChart(
                         "Abnormal Program " + count,
-                        "Value", "Value",
+                        "Time of Day", "Total Energy Usage",
                         dataset, PlotOrientation.VERTICAL,
-                        true, true, false);
+                        true, false, false);
 
                 // Run the simplex algorithm on abnormal programs
                 if (testingData.endsWith("1")) {
