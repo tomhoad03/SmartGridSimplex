@@ -14,17 +14,18 @@ public class ManipulationDetection {
             // Reading the input data
             ArrayList<PricingCurve> trainingPricingCurves = readTrainingData();
             ArrayList<PricingCurve> testingPricingCurves = readTestingData();
+            FileWriter resultsWriter = new FileWriter("SchedulingResults.txt");
             readInputData();
 
             // Classification of testing data
             ClassificationValues classificationValues = trainClassification(trainingPricingCurves);
-            classifyTrainingData(50, 20, classificationValues, trainingPricingCurves);
+            classifyTrainingData(50, 20, classificationValues, trainingPricingCurves, resultsWriter);
             classifyTestingData(50, 20, classificationValues, trainingPricingCurves, testingPricingCurves);
-            printResults(testingPricingCurves);
+            printResults(testingPricingCurves, resultsWriter);
 
             // Linear programming using simplex
             createTestingLPs();
-            simplexSolver();
+            simplexSolver(resultsWriter);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -197,7 +198,7 @@ public class ManipulationDetection {
     }
 
     // Classify the training data to test the accuracy of the classification
-    private static void classifyTrainingData(int k, int b, ClassificationValues classificationValues, ArrayList<PricingCurve> trainingPricingCurves) {
+    private static void classifyTrainingData(int k, int b, ClassificationValues classificationValues, ArrayList<PricingCurve> trainingPricingCurves, FileWriter resultsWriter) throws Exception {
         ArrayList<PricingCurve> trainingAccuracyCurves = new ArrayList<>();
         for (int i = 0; i < trainingPricingCurves.size() / 2; i++) {
             trainingAccuracyCurves.add(i, new PricingCurve(trainingPricingCurves.get(i).getPricingValues(), 0, trainingPricingCurves.get(i).getWeighting()));
@@ -259,6 +260,7 @@ public class ManipulationDetection {
             }
         }
         System.out.print("Accuracy: " + (double) correctCount / (double) trainingAccuracyCurves.size() + "   |   ");
+        resultsWriter.write("Accuracy: " + (double) correctCount / (double) trainingAccuracyCurves.size() + "   |   ");
     }
 
     // Classify the testing data using k nearest neighbours and bagging
@@ -310,8 +312,8 @@ public class ManipulationDetection {
     }
 
     // Write the results to a file
-    private static void printResults(ArrayList<PricingCurve> testingPricingCurves) throws Exception {
-        FileWriter dataWriter = new FileWriter("NeighboursTestingData.txt");
+    private static void printResults(ArrayList<PricingCurve> testingPricingCurves, FileWriter resultsWriter) throws Exception {
+        FileWriter dataWriter = new FileWriter("TestingResults.txt");
         StringBuilder line = new StringBuilder();
 
         // Print the pricing curve whilst counting the number of normal and abnormal curves
@@ -331,11 +333,12 @@ public class ManipulationDetection {
         dataWriter.close();
 
         System.out.println("Normal: " + normalCount + "   |   Abnormal: " + abnormalCount);
+        resultsWriter.write("Normal: " + normalCount + "   |   Abnormal: " + abnormalCount + "\n");
     }
 
     // Create LP files for each of the abnormal testing pricing curves
     private static void createTestingLPs() throws Exception {
-        File dataFile = new File("NeighboursTestingData.txt");
+        File dataFile = new File("TestingResults.txt");
         Scanner dataReader = new Scanner(dataFile);
         int count = 0;
 
@@ -387,9 +390,8 @@ public class ManipulationDetection {
     }
 
     // Solve the lp problems using simplex
-    private static void simplexSolver() throws Exception {
-        Scanner testingReader = new Scanner(new File("NeighboursTestingData.txt"));
-        FileWriter resultsWriter = new FileWriter("results.txt");
+    private static void simplexSolver(FileWriter resultsWriter) throws Exception {
+        Scanner testingReader = new Scanner(new File("TestingResults.txt"));
         int count = 0;
 
         while (testingReader.hasNextLine()) {
@@ -426,8 +428,7 @@ public class ManipulationDetection {
 
                     Tableau tableau = new Tableau(testingData);
                     tableau.solve(resultsWriter);
-                }
-            }
+                }            }
             ChartUtilities.saveChartAsJPEG(chart, barChart, 1280, 720);
             count++;
         }

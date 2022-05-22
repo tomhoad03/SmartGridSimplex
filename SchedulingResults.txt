@@ -1,3 +1,4 @@
+Accuracy: 0.8189   |   Normal: 50   |   Abnormal: 50
 LP0   |   First Stage: 492.91274369081987   |   Second Stage: 354.04537955274964
 LP1   |   First Stage: 491.4285157261653   |   Second Stage: 356.4885655536382
 LP2   |   First Stage: 487.3500738536801   |   Second Stage: 354.96976717866676
