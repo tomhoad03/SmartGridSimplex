@@ -17,9 +17,9 @@ public class ManipulationDetection {
             readInputData();
 
             // Classification of testing data
-            ArrayList<Double> meanCurve = trainClassification(trainingPricingCurves);
-            classifyTrainingData(50, 20, meanCurve, trainingPricingCurves);
-            classifyTestingData(50, 20, meanCurve, trainingPricingCurves, testingPricingCurves);
+            ClassificationValues classificationValues = trainClassification(trainingPricingCurves);
+            classifyTrainingData(50, 20, classificationValues, trainingPricingCurves);
+            classifyTestingData(50, 20, classificationValues, trainingPricingCurves, testingPricingCurves);
             printResults(testingPricingCurves);
 
             // Linear programming using simplex
@@ -134,8 +134,9 @@ public class ManipulationDetection {
     }
 
     // Train the classification algorithm
-    private static ArrayList<Double> trainClassification(ArrayList<PricingCurve> trainingPricingCurves) {
-        ArrayList<Double> meanCurve = new ArrayList<>(24);
+    private static ClassificationValues trainClassification(ArrayList<PricingCurve> trainingPricingCurves) {
+        ArrayList<Double> maxCurve = new ArrayList<>(24);
+        ArrayList<Double> minCurve = new ArrayList<>(24);
         ArrayList<Double> meanNormalCurve = new ArrayList<>(24);
         ArrayList<Double> meanAbnormalCurve = new ArrayList<>(24);
 
@@ -158,32 +159,45 @@ public class ManipulationDetection {
                     }
                 }
             }
+            for (int i = 0; i < 24; i++) {
+                try {
+                    if (maxCurve.get(i) < trainingPricingCurve.getPricingValues().get(i)) {
+                        maxCurve.set(i, trainingPricingCurve.getPricingValues().get(i));
+                    }
+                } catch (Exception e) {
+                    maxCurve.add(trainingPricingCurve.getPricingValues().get(i));
+                }
+                try {
+                    if (minCurve.get(i) > trainingPricingCurve.getPricingValues().get(i)) {
+                        minCurve.set(i, trainingPricingCurve.getPricingValues().get(i));
+                    }
+                } catch (Exception e) {
+                    minCurve.add(trainingPricingCurve.getPricingValues().get(i));
+                }
+            }
         }
 
-        // Finds the mean curve
-        for (int i = 0; i < 24; i++) {
-            meanCurve.add((meanNormalCurve.get(i) + meanAbnormalCurve.get(i)) / 10000);
-        }
+        ClassificationValues classificationValues = new ClassificationValues(maxCurve, minCurve);
 
         // Calculates the weighting of each training curve given its distance to the mean
         for (PricingCurve trainingPricingCurve : trainingPricingCurves) {
             double distanceSquared = 0.0;
             if (trainingPricingCurve.isNormal()) {
                 for (int j = 0; j < 24; j++) {
-                    distanceSquared += Math.pow((meanNormalCurve.get(j) - meanCurve.get(j)) - (trainingPricingCurve.getPricingValues().get(j) - meanCurve.get(j)), 2);
+                    distanceSquared += Math.pow(((meanNormalCurve.get(j) - classificationValues.getMinPricingCurveValue(j)) / classificationValues.getMaxMinDifferent(j)) - ((trainingPricingCurve.getPricingValues().get(j) - classificationValues.getMinPricingCurveValue(j)) / classificationValues.getMaxMinDifferent(j)), 2);
                 }
             } else {
                 for (int j = 0; j < 24; j++) {
-                    distanceSquared += Math.pow((meanAbnormalCurve.get(j) - meanCurve.get(j)) - (trainingPricingCurve.getPricingValues().get(j) - meanCurve.get(j)), 2);
+                    distanceSquared += Math.pow(((meanAbnormalCurve.get(j) - classificationValues.getMinPricingCurveValue(j)) / classificationValues.getMaxMinDifferent(j)) - ((trainingPricingCurve.getPricingValues().get(j) - classificationValues.getMinPricingCurveValue(j)) / classificationValues.getMaxMinDifferent(j)), 2);
                 }
             }
             trainingPricingCurve.setWeighting(Math.sqrt(distanceSquared));
         }
-        return meanCurve;
+        return classificationValues;
     }
 
     // Classify the training data to test the accuracy of the classification
-    private static void classifyTrainingData(int k, int b, ArrayList<Double> meanCurve, ArrayList<PricingCurve> trainingPricingCurves) {
+    private static void classifyTrainingData(int k, int b, ClassificationValues classificationValues, ArrayList<PricingCurve> trainingPricingCurves) {
         ArrayList<PricingCurve> trainingAccuracyCurves = new ArrayList<>();
         for (int i = 0; i < trainingPricingCurves.size() / 2; i++) {
             trainingAccuracyCurves.add(i, new PricingCurve(trainingPricingCurves.get(i).getPricingValues(), 0, trainingPricingCurves.get(i).getWeighting()));
@@ -209,7 +223,7 @@ public class ManipulationDetection {
                 for (PricingCurve trainingPricingCurve : trainingPricingCurvesBag) {
                     double distanceSquared = 0.0;
                     for (int m = 0; m < 24; m++) {
-                        distanceSquared += Math.pow(((trainingAccuracyCurve.getPricingValues().get(m) - meanCurve.get(m)) - (trainingPricingCurve.getPricingValues().get(m) - meanCurve.get(m))), 2);
+                        distanceSquared += Math.pow((((trainingAccuracyCurve.getPricingValues().get(m) - classificationValues.getMinPricingCurveValue(m)) / classificationValues.getMaxMinDifferent(m))) - ((trainingPricingCurve.getPricingValues().get(m) - classificationValues.getMinPricingCurveValue(m)) / classificationValues.getMaxMinDifferent(m)), 2);
                     }
                     weightedDistances.add(new DistancePair(trainingPricingCurve.getWeighting() * distanceSquared, count));
                     count += b;
@@ -248,7 +262,7 @@ public class ManipulationDetection {
     }
 
     // Classify the testing data using k nearest neighbours and bagging
-    private static void classifyTestingData(int k, int b, ArrayList<Double> meanCurve, ArrayList<PricingCurve> trainingPricingCurves, ArrayList<PricingCurve> testingPricingCurves) {
+    private static void classifyTestingData(int k, int b, ClassificationValues classificationValues, ArrayList<PricingCurve> trainingPricingCurves, ArrayList<PricingCurve> testingPricingCurves) {
         for (int i = 0; i < b; i++) {
             // Create a bag of the training data
             ArrayList<PricingCurve> trainingPricingCurvesBag = new ArrayList<>();
@@ -265,7 +279,7 @@ public class ManipulationDetection {
                 for (PricingCurve trainingPricingCurve : trainingPricingCurvesBag) {
                     double distanceSquared = 0.0;
                     for (int m = 0; m < 24; m++) {
-                        distanceSquared += Math.pow(((testingPricingCurve.getPricingValues().get(m) - meanCurve.get(m)) - (trainingPricingCurve.getPricingValues().get(m) - meanCurve.get(m))), 2);
+                        distanceSquared += Math.pow((((testingPricingCurve.getPricingValues().get(m) - classificationValues.getMinPricingCurveValue(m)) / classificationValues.getMaxMinDifferent(m)) - ((trainingPricingCurve.getPricingValues().get(m) - classificationValues.getMinPricingCurveValue(m)) / classificationValues.getMaxMinDifferent(m))), 2);
                     }
                     weightedDistances.add(new DistancePair(trainingPricingCurve.getWeighting() * distanceSquared, count));
                     count += b;
