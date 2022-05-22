@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -36,7 +37,7 @@ public class Tableau {
         }
     }
 
-    public void solve() {
+    public void solve(FileWriter resultsWriter) throws Exception {
         int y = 0, x = 0;
         int numberOfVariables = minimiseFunction.getVariables().size(), // 398
             numberOfConstraints = constraints.size(), // 498
@@ -148,6 +149,7 @@ public class Tableau {
             }
         }
         System.out.print("First Stage: " + -tableau[numberOfConstraints][numberOfBoth]);
+        resultsWriter.write("First Stage: " + -tableau[numberOfConstraints][numberOfBoth]);
 
         // Perform the second phase of simplex
         isSolved = false;
@@ -185,5 +187,6 @@ public class Tableau {
             }
         }
         System.out.println("   |   Second Stage: " + -tableau[numberOfConstraints][numberOfBoth]);
+        resultsWriter.write("   |   Second Stage: " + -tableau[numberOfConstraints][numberOfBoth] + "\n");
     }
 }

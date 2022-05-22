@@ -18,7 +18,7 @@ public class ManipulationDetection {
 
             // Classification of testing data
             ClassificationValues classificationValues = trainClassification(trainingPricingCurves);
-            classifyTrainingData(50, 20, classificationValues, trainingPricingCurves);
+            // classifyTrainingData(50, 20, classificationValues, trainingPricingCurves);
             classifyTestingData(50, 20, classificationValues, trainingPricingCurves, testingPricingCurves);
             printResults(testingPricingCurves);
 
@@ -389,6 +389,7 @@ public class ManipulationDetection {
     // Solve the lp problems using simplex
     private static void simplexSolver() throws Exception {
         Scanner testingReader = new Scanner(new File("NeighboursTestingData.txt"));
+        FileWriter resultsWriter = new FileWriter("results.txt");
         int count = 0;
 
         while (testingReader.hasNextLine()) {
@@ -420,13 +421,16 @@ public class ManipulationDetection {
 
                 // Run the simplex algorithm on abnormal programs
                 if (testingData.endsWith("1")) {
-                    Tableau tableau = new Tableau(testingData);
                     System.out.print("LP" + count + "   |   ");
-                    tableau.solve();
+                    resultsWriter.write("LP" + count + "   |   ");
+
+                    Tableau tableau = new Tableau(testingData);
+                    tableau.solve(resultsWriter);
                 }
             }
             ChartUtilities.saveChartAsJPEG(chart, barChart, 1280, 720);
             count++;
         }
+        resultsWriter.close();
     }
 }
